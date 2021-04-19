@@ -1,22 +1,57 @@
 import { Template } from 'meteor/templating';
 import { ReactiveVar } from 'meteor/reactive-var';
+import { Mongo } from 'meteor/mongo';
+
+
+Resolutions = new Mongo.Collection('resolutions');
 
 import './main.html';
 
-Template.hello.onCreated(function helloOnCreated() {
-  // counter starts at 0
-  this.counter = new ReactiveVar(0);
+Template.body.helpers({
+  resolutions: function() {
+    if(Session.get('hideFinished')) {
+      return Resolutions.find({checked: {$ne: true}});
+    } else {
+      return Resolutions.find()
+    }
+  },
+  hideFinished: function() {
+    return Session.get('hideFinished')
+  }
 });
 
-Template.hello.helpers({
-  counter() {
-    return Template.instance().counter.get();
+Template.body.events({
+  'submit .new-resolution': function(event) {
+    let title = event.target.title.value
+    console.log(event)
+
+    Resolutions.insert({
+      title: title,
+      createAt: new Date()
+    });
+    event.target.title.value = "";
+    return false
   },
+  'change .hide-finished': function(event) {
+    Session.set('hideFinished', event.target.checked);
+  }
+
 });
 
-Template.hello.events({
-  'click button'(event, instance) {
-    // increment the counter when button is clicked
-    instance.counter.set(instance.counter.get() + 1);
+Template.resolution.events({
+  'click .toggle-checked': function() {
+    Resolutions.update(this._id, {$set: {checked: !this.checked}})
   },
-});
+  'click .delete': function() {
+    Resolutions.remove(this._id);
+  }
+})
+
+// Meteor.methods({
+//   addResolution: function(title){ 
+//     Resolutions.insert({
+//       title: title,
+//       createAt: new Date()
+//     });
+//   }
+// })
